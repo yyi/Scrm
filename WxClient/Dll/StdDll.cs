@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using Newtonsoft.Json;
 using NLog;
+using WxClient.dll.Dto;
 
 namespace WxClient.dll
 {
@@ -23,18 +25,15 @@ namespace WxClient.dll
 
         static void Recv(int clientId, string jsonData, int dataSize)
         {
-            dynamic data = JsonConvert.DeserializeObject(jsonData) ?? "";
-            foreach (var obj in data)
+            dynamic data = JsonConvert.DeserializeObject(jsonData);
+ 
+            var deserializeObject = JsonConvert.DeserializeObject<WxResponse>(jsonData);
+            if (deserializeObject == null) return;
+            if (deserializeObject.Type == 20500) // 心跳数据，忽略
             {
-                if (obj.Name == "type")
-                {
-                    var val = obj.Value;
-                    if (val == 20500) // 心跳数据，忽略
-                    {
-                        return;
-                    }
-                }
+                return;
             }
+
 
             Console.WriteLine("\n接收到 {0} 的消息:\n", clientId);
             Console.WriteLine(jsonData);
@@ -74,22 +73,22 @@ namespace WxClient.dll
         static extern int WXCmdStop();
 
         // 发送json
-        static void SendJson(int clientID, object json)
+        static void SendJson(int clientId, object json)
         {
             // 将json序列化为字符串
             var str = JsonConvert.SerializeObject(json);
             // 将json字符串转换成 utf8 bytes
             var jsonBytes = Encoding.UTF8.GetBytes(str);
-            WXCmdSend(clientID, jsonBytes);
+            WXCmdSend(clientId, jsonBytes);
         }
 
         public static void Init()
         {
             var connect = new PConnected(Connect);
-            var recv = new PRecvMessage(Recv);
+            var receive = new PRecvMessage(Recv);
             var quit = new PQuit(Quit);
             // 1 初始化网络连接
-            WXCmdInitSocket(connect, recv, quit);
+            WXCmdInitSocket(connect, receive, quit);
 
             // 2 初始化注入目录
             WXCmdInitDllPath("C:\\Dll\\vx_3.6.0.18_release.dll");
@@ -101,6 +100,11 @@ namespace WxClient.dll
 
             // 4 运行
             WXCmdRun();
+        }
+
+        public static void OpenWx()
+        {
+            WXCmdOpenWechat();
         }
     }
 }

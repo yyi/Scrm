@@ -65,12 +65,16 @@
         <Reference Include="System.Xml" />
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Channel\WxSocketClient.cs" />
+        <Compile Include="Dll\Dto\WxResponse.cs" />
         <Compile Include="Dll\StdDll.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>
-      <None Include="NLog.config" />
+      <None Include="NLog.config">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
       <None Include="packages.config" />
     </ItemGroup>
     <ItemGroup>
