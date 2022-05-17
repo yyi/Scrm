@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using Newtonsoft.Json;
 using NLog;
+using NLog.Fluent;
+using WxClient.commons.command.request;
 
 namespace WxClient.Channel
 {
@@ -72,6 +76,8 @@ namespace WxClient.Channel
 
         private void ReceiveCommand()
         {
+            Dictionary<int, Type> dictionary = new Dictionary<int, Type>();
+            dictionary.Add(2, typeof(UserLoginDirectlyCommand));
             var lengthByte = new byte[4];
             SyncReadBuffer(_stream, ref lengthByte);
             var len = BinaryPrimitives.ReadUInt32BigEndian(lengthByte);
@@ -82,6 +88,8 @@ namespace WxClient.Channel
             var bodyLen = BinaryPrimitives.ReadInt32BigEndian(responseBytes) & 0x00FFFFFF;
             Console.WriteLine("报文类型{0} 包体长度{1}", commandId, bodyLen);
             var responseMessage = Encoding.UTF8.GetString(responseBytes, 4, bodyLen);
+            var userLoginDirectlyCommand = JsonConvert.DeserializeObject(responseMessage, dictionary[commandId]);
+            Logger.Info(userLoginDirectlyCommand.ToString());
             Console.WriteLine();
             Console.WriteLine("Response Received From Server:");
             Console.WriteLine(responseMessage);
