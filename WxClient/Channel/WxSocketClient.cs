@@ -11,7 +11,7 @@ namespace WxClient.Channel
 {
     public class WxSocketClient
     {
-        private Logger Logger { get; } = NLog.LogManager.GetCurrentClassLogger();
+        private Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
         public static readonly WxSocketClient Instance = new WxSocketClient();
 
@@ -26,7 +26,9 @@ namespace WxClient.Channel
 
         public void Start(string ip, int port)
         {
-            _endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+            if (!IPAddress.TryParse(ip, out var ipAddress))
+                ipAddress = GetIPAddress(ip);
+            _endPoint = new IPEndPoint(ipAddress, port);
             var thread = new Thread(Run);
             thread.Start();
         }
@@ -47,11 +49,12 @@ namespace WxClient.Channel
                         client.Connect(_endPoint);
                         if (!client.Connected)
                         {
-                            Logger.Info($"客户端连接失败 {_endPoint}");
+                            Logger.Warn($"客户端连接失败 {_endPoint}");
                             Disconnected();
                             continue;
                         }
 
+                        Logger.Info($"客户端连接成功{_endPoint}");
                         Connected(client.GetStream());
                         while (_connected)
                         {
@@ -61,7 +64,7 @@ namespace WxClient.Channel
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "连接异常");
+                    Logger.Error(e, $"{e.Message} {_endPoint}\n{e.StackTrace}");
                     Disconnected();
                 }
             }
@@ -100,6 +103,23 @@ namespace WxClient.Channel
         {
             _stream = stream;
             _connected = true;
+        }
+
+        private IPAddress GetIPAddress(string hostname)
+        {
+            IPHostEntry host;
+            host = Dns.GetHostEntry(hostname);
+
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ;
+                    return ip;
+                }
+            }
+
+            return null;
         }
     }
 }
